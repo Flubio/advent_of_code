@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐙 Cephalopod Math Hero - Day 6</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #000;
+      min-height: 100vh;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      background: rgba(0, 0, 0, 0.8);
+      border-bottom: 2px solid #333;
+      z-index: 100;
+    }
+
+    .title {
+      font-size: 1.5em;
+      background: linear-gradient(90deg, #ff0080, #00d9ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .score-display {
+      text-align: right;
+    }
+
+    .score-label {
+      font-size: 0.7em;
+      color: #888;
+      text-transform: uppercase;
+    }
+
+    .score-value {
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #00ff88;
+      text-shadow: 0 0 20px #00ff88;
+    }
+
+    .highway-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, #0a0a1a 0%, #1a0a2a 100%);
+    }
+
+    /* Perspective highway effect */
+    .highway {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 100%;
+      background: linear-gradient(90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.03) 20%,
+          rgba(255, 255, 255, 0.05) 50%,
+          rgba(255, 255, 255, 0.03) 80%,
+          transparent 100%);
+      border-left: 2px solid rgba(255, 0, 128, 0.3);
+      border-right: 2px solid rgba(0, 217, 255, 0.3);
+    }
+
+    /* Lane dividers */
+    .lane-divider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: linear-gradient(180deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.2) 50%,
+          rgba(255, 255, 255, 0.4) 100%);
+    }
+
+    /* Hit zone at bottom */
+    .hit-zone {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 720px;
+      height: 60px;
+      background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.1));
+      border-top: 3px solid rgba(255, 255, 255, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .hit-zone-glow {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center bottom, rgba(255, 255, 255, 0.2), transparent 70%);
+      animation: pulse 0.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      from {
+        opacity: 0.5;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* Notes/Equations */
+    .note {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 680px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 1.1em;
+      opacity: 0;
+      transition: opacity 0.1s;
+      z-index: 5;
+    }
+
+    .note.add {
+      background: linear-gradient(90deg, rgba(0, 255, 100, 0.2), rgba(0, 255, 100, 0.1));
+      border: 2px solid #00ff64;
+      box-shadow: 0 0 20px rgba(0, 255, 100, 0.3), inset 0 0 30px rgba(0, 255, 100, 0.1);
+    }
+
+    .note.mul {
+      background: linear-gradient(90deg, rgba(255, 0, 128, 0.2), rgba(255, 0, 128, 0.1));
+      border: 2px solid #ff0080;
+      box-shadow: 0 0 20px rgba(255, 0, 128, 0.3), inset 0 0 30px rgba(255, 0, 128, 0.1);
+    }
+
+    .note.hit {
+      animation: noteHit 0.3s ease-out forwards;
+    }
+
+    @keyframes noteHit {
+      0% {
+        transform: translateX(-50%) scale(1);
+      }
+
+      50% {
+        transform: translateX(-50%) scale(1.1);
+        filter: brightness(2);
+      }
+
+      100% {
+        transform: translateX(-50%) scale(1);
+        opacity: 0;
+      }
+    }
+
+    .note-num {
+      color: #888;
+      font-size: 0.8em;
+      min-width: 50px;
+    }
+
+    .note-equation {
+      flex: 1;
+      text-align: center;
+      color: #fff;
+    }
+
+    .note-equation .op {
+      color: #888;
+      margin: 0 8px;
+    }
+
+    .note-result {
+      font-weight: bold;
+      min-width: 150px;
+      text-align: right;
+    }
+
+    .note.add .note-result {
+      color: #00ff64;
+      text-shadow: 0 0 10px #00ff64;
+    }
+
+    .note.mul .note-result {
+      color: #ff0080;
+      text-shadow: 0 0 10px #ff0080;
+    }
+
+    /* Big floating result on hit */
+    .hit-result-popup {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 4em;
+      font-weight: bold;
+      text-align: center;
+      pointer-events: none;
+      z-index: 200;
+      animation: floatUp 1s ease-out forwards;
+    }
+
+    .hit-result-popup.add {
+      color: #00ff64;
+      text-shadow: 0 0 30px #00ff64, 0 0 60px #00ff64;
+    }
+
+    .hit-result-popup.mul {
+      color: #ff0080;
+      text-shadow: 0 0 30px #ff0080, 0 0 60px #ff0080;
+    }
+
+    .hit-result-popup .plus-sign {
+      font-size: 0.6em;
+      opacity: 0.7;
+      margin-right: 5px;
+    }
+
+    @keyframes floatUp {
+      0% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+      }
+
+      70% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-60px) scale(1.2);
+      }
+    }
+
+    /* Combo/streak display */
+    .combo-display {
+      position: absolute;
+      right: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      text-align: right;
+    }
+
+    .combo-count {
+      font-size: 4em;
+      font-weight: bold;
+      color: #ffcc00;
+      text-shadow: 0 0 30px #ffcc00;
+      line-height: 1;
+    }
+
+    .combo-label {
+      font-size: 1em;
+      color: #888;
+      text-transform: uppercase;
+    }
+
+    /* Controls */
+    .controls-bar {
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border-top: 2px solid #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      padding: 12px 30px;
+      font-size: 1em;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: inherit;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .speed-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #888;
+    }
+
+    input[type="range"] {
+      width: 120px;
+      accent-color: #667eea;
+    }
+
+    .file-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .file-label {
+      padding: 12px 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .file-label:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Grand total overlay */
+    .grand-total-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      flex-direction: column;
+    }
+
+    .grand-total-overlay.visible {
+      display: flex;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .final-score {
+      text-align: center;
+    }
+
+    .final-label {
+      font-size: 1.5em;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
+    .final-value {
+      font-size: 4em;
+      font-weight: bold;
+      background: linear-gradient(90deg, #00d9ff, #ff0080, #ffcc00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: none;
+      animation: rainbow 2s linear infinite;
+      background-size: 200% auto;
+    }
+
+    @keyframes rainbow {
+      0% {
+        background-position: 0% center;
+      }
+
+      100% {
+        background-position: 200% center;
+      }
+    }
+
+    .final-stats {
+      margin-top: 30px;
+      color: #888;
+    }
+
+    .play-again-btn {
+      margin-top: 30px;
+    }
+
+    /* Particles */
+    .particle {
+      position: absolute;
+      pointer-events: none;
+      border-radius: 50%;
+      animation: particleFade 0.5s ease-out forwards;
+    }
+
+    @keyframes particleFade {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(0);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="game-container">
+    <div class="header">
+      <div class="title">🐙 CEPHALOPOD MATH HERO 🎸</div>
+      <div class="score-display">
+        <div class="score-label">Grand Total</div>
+        <div class="score-value" id="score">0</div>
+      </div>
+    </div>
+
+    <div class="highway-container" id="highwayContainer">
+      <div class="highway">
+        <div class="lane-divider" style="left: 33%"></div>
+        <div class="lane-divider" style="left: 66%"></div>
+      </div>
+      <div class="hit-zone">
+        <div class="hit-zone-glow"></div>
+      </div>
+      <div class="combo-display">
+        <div class="combo-count" id="combo">0</div>
+        <div class="combo-label">Problems</div>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <div class="file-input-wrapper">
+        <input type="file" id="fileInput" accept=".txt">
+        <label for="fileInput" class="file-label">📁 Load input.txt</label>
+        <span id="fileName"></span>
+      </div>
+      <button id="startBtn" disabled>▶ START</button>
+      <div class="speed-control">
+        <span>🐢</span>
+        <input type="range" id="speedSlider" min="1" max="20" value="10">
+        <span>🚀</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grand-total-overlay" id="overlay">
+    <div class="final-score">
+      <div class="final-label">🎉 STAGE COMPLETE 🎉</div>
+      <div class="final-value" id="finalScore">0</div>
+      <div class="final-stats" id="finalStats"></div>
+      <button class="play-again-btn" onclick="location.reload()">🔄 Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    let problems = [];
+    let isRunning = false;
+    let currentIndex = 0;
+    let grandTotal = 0;
+    let animationId = null;
+    let notes = [];
+    let lastNoteTime = 0;
+
+    const fileInput = document.getElementById('fileInput');
+    const startBtn = document.getElementById('startBtn');
+    const speedSlider = document.getElementById('speedSlider');
+    const highwayContainer = document.getElementById('highwayContainer');
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      document.getElementById('fileName').textContent = file.name;
+      const text = await file.text();
+      problems = parseInput(text);
+      startBtn.disabled = false;
+      startBtn.textContent = `▶ START (${problems.length} problems)`;
+    });
+
+    function parseInput(text) {
+      const data = text.split('\n');
+      while (data.length > 0 && data[data.length - 1] === '') data.pop();
+
+      const opRow = data[data.length - 1];
+      const numRows = data.slice(0, -1);
+      const width = Math.max(...data.map(r => r.length));
+
+      let problemBounds = [], start = null;
+      for (let col = 0; col <= width; col++) {
+        const allSpace = col === width || data.every(r => (r[col] || ' ') === ' ');
+        if (allSpace && start !== null) { problemBounds.push([start, col]); start = null; }
+        else if (!allSpace && start === null) start = col;
+      }
+      problemBounds.reverse();
+
+      return problemBounds.map(([s, e]) => {
+        const op = opRow.slice(s, e).trim()[0];
+        const columns = [];
+
+        for (let col = e - 1; col >= s; col--) {
+          const colChars = numRows.map(r => r[col] || ' ');
+          const digits = colChars.filter(ch => ch >= '0' && ch <= '9').join('');
+          if (digits) columns.push(parseInt(digits));
+        }
+
+        const result = op === '+'
+          ? columns.reduce((a, b) => a + b, 0)
+          : columns.reduce((a, b) => a * b, 1);
+
+        return { op, nums: columns, result };
+      });
+    }
+
+    function createNote(problem, index) {
+      const note = document.createElement('div');
+      note.className = `note ${problem.op === '+' ? 'add' : 'mul'}`;
+
+      const opSymbol = problem.op === '+' ? '+' : '×';
+      const equationStr = problem.nums.map(n => n.toLocaleString()).join(` <span class="op">${opSymbol}</span> `);
+
+      note.innerHTML = `
+        <span class="note-num">#${index + 1}</span>
+        <span class="note-equation">${equationStr}</span>
+        <span class="note-result">= ${problem.result.toLocaleString()}</span>
+      `;
+
+      note.style.top = '-80px';
+      note.style.opacity = '1';
+      highwayContainer.appendChild(note);
+
+      return {
+        element: note,
+        y: -80,
+        problem: problem,
+        index: index,
+        hit: false
+      };
+    }
+
+    function createParticles(x, y, color) {
+      for (let i = 0; i < 8; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = x + 'px';
+        particle.style.top = y + 'px';
+        particle.style.width = '10px';
+        particle.style.height = '10px';
+        particle.style.background = color;
+        particle.style.boxShadow = `0 0 10px ${color}`;
+
+        const angle = (Math.PI * 2 * i) / 8;
+        const velocity = 50 + Math.random() * 50;
+        const dx = Math.cos(angle) * velocity;
+        const dy = Math.sin(angle) * velocity;
+
+        highwayContainer.appendChild(particle);
+
+        particle.animate([
+          { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0)`, opacity: 0 }
+        ], { duration: 500, easing: 'ease-out' });
+
+        setTimeout(() => particle.remove(), 500);
+      }
+    }
+
+    function showHitResult(result, op) {
+      const popup = document.createElement('div');
+      popup.className = `hit-result-popup ${op === '+' ? 'add' : 'mul'}`;
+      popup.innerHTML = `<span class="plus-sign">+</span>${result.toLocaleString()}`;
+      highwayContainer.appendChild(popup);
+
+      // Remove after animation
+      setTimeout(() => popup.remove(), 1000);
+    }
+
+    function getSpeed() {
+      return speedSlider.value * 0.5;
+    }
+
+    function getNoteInterval() {
+      // More spacing between notes
+      return Math.max(100, 350 - speedSlider.value * 10);
+    }
+
+    function gameLoop(timestamp) {
+      if (!isRunning) return;
+
+      const speed = getSpeed();
+      const hitZoneY = highwayContainer.clientHeight - 140;
+
+      // Spawn new notes
+      if (currentIndex < problems.length && timestamp - lastNoteTime > getNoteInterval()) {
+        notes.push(createNote(problems[currentIndex], currentIndex));
+        currentIndex++;
+        lastNoteTime = timestamp;
+      }
+
+      // Update notes
+      for (let i = notes.length - 1; i >= 0; i--) {
+        const note = notes[i];
+        note.y += speed;
+        note.element.style.top = note.y + 'px';
+
+        // Hit detection
+        if (!note.hit && note.y > hitZoneY - 30 && note.y < hitZoneY + 30) {
+          note.hit = true;
+          note.element.classList.add('hit');
+
+          grandTotal += note.problem.result;
+          document.getElementById('score').textContent = grandTotal.toLocaleString();
+          document.getElementById('combo').textContent = note.index + 1;
+
+          const color = note.problem.op === '+' ? '#00ff64' : '#ff0080';
+          const rect = note.element.getBoundingClientRect();
+          createParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, color);
+
+          // Show big floating result
+          showHitResult(note.problem.result, note.problem.op);
+        }
+
+        // Remove off-screen notes
+        if (note.y > highwayContainer.clientHeight + 100) {
+          note.element.remove();
+          notes.splice(i, 1);
+        }
+      }
+
+      // Check if done
+      if (currentIndex >= problems.length && notes.length === 0) {
+        showFinalScore();
+        return;
+      }
+
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    function showFinalScore() {
+      isRunning = false;
+      document.getElementById('finalScore').textContent = grandTotal.toLocaleString();
+
+      const addCount = problems.filter(p => p.op === '+').length;
+      const mulCount = problems.filter(p => p.op === '*').length;
+      document.getElementById('finalStats').textContent =
+        `${problems.length} problems • ${addCount} additions • ${mulCount} multiplications`;
+
+      document.getElementById('overlay').classList.add('visible');
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (isRunning) return;
+
+      isRunning = true;
+      currentIndex = 0;
+      grandTotal = 0;
+      notes = [];
+      lastNoteTime = 0;
+
+      document.getElementById('score').textContent = '0';
+      document.getElementById('combo').textContent = '0';
+      startBtn.disabled = true;
+
+      // Clear any existing notes
+      document.querySelectorAll('.note').forEach(n => n.remove());
+
+      animationId = requestAnimationFrame(gameLoop);
+    });
+  </script>
+</body>
+
+</html>
