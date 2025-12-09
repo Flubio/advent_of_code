@@ -13,7 +13,7 @@ This year I want to use a different programming language for each Advent of Code
 | 6   | JavaScript |
 | 7   | C++      |
 | 8   | Ruby     |
-| 9   | Scala    |
+| 9   | C    |
 | 10  | Elixr   |
 | 11  | TypeScript |
 | 12  | PHP      |
